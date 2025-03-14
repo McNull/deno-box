@@ -1,0 +1,22 @@
+{
+  "name": "@mcnull/deno-box",
+  "version": "0.1.0",
+  "description": "A simple CLI app to quickly create a new Deno sandbox/playground project.",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/main.ts"
+  },
+  "tasks": {
+    "dev": "deno run --watch -A ./src/main.ts",
+    "compile": "deno compile -RWE --allow-run -o deno-box src/main.ts",
+    "install": "deno install --global -c ./deno.json -RWE --allow-run -n deno-box src/main.ts",
+    "uninstall": "deno uninstall --global deno-box"
+  },
+  "imports": {
+    "@std/cli": "jsr:@std/cli@^1.0.14",
+    "@std/expect": "jsr:@std/expect@^1.0.13",
+    "@std/fs": "jsr:@std/fs@^1.0.14",
+    "@std/path": "jsr:@std/path@^1.0.8",
+    "@std/random": "jsr:@std/random@^0.1.0"
+  }
+}
