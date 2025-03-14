@@ -7,7 +7,7 @@ A simple CLI app to quickly create new Deno sandbox/playground projects.
 ### Deno
 
 ```bash
-deno install -RWE --allow-run jsr:@mcnull/deno-box
+deno install --global -RWE --allow-run jsr:@mcnull/deno-box
 ```
 
 ### Manual installation
