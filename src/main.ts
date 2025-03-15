@@ -4,6 +4,7 @@ import { RandomName } from "./random-name.ts";
 import * as path from "@std/path";
 import * as fs from "@std/fs";
 import { ensureRoot } from "./utils.ts";
+import { initVSCodeProject } from "./vscode.ts";
 
 /**
  * Generates a project name based on the provided options.
@@ -52,6 +53,61 @@ function getProjectName(options: Options): string {
 }
 
 /**
+ * Adds the specified libraries to the Deno project.
+ *
+ * @param {Options} options - The options object containing the libraries to add.
+ * @param {string} fullPath - The full path to the project directory.
+ *
+ * @returns {Promise<void>} A promise that resolves when the libraries have been added.
+ *
+ * @throws Will log an error and exit the process if adding libraries fails.
+ */
+async function addLibraries(options: Options, fullPath: string): Promise<void> {
+  if (options.add && options.add.length) {
+    console.log("Adding libraries:", options.add.join(", "));
+
+    // run deno add $add1 $add2 ...
+    const denoAdd = new Deno.Command("deno", {
+      args: ["add", ...options.add],
+      cwd: fullPath,
+    });
+
+    const output = await denoAdd.output();
+
+    if (!output.success) {
+      console.error("Error adding libraries");
+      console.log(new TextDecoder().decode(output.stderr));
+      Deno.exit(1);
+    }
+  }
+}
+
+/**
+ * Initializes a new Deno project with the given project name and options.
+ *
+ * @param {string} projectName - The name of the project to initialize.
+ * @param {Options} options - The options for initializing the project, including the root directory.
+ * @returns {Promise<void>} A promise that resolves when the project initialization is complete.
+ *
+ * @throws {Error} If the project initialization fails, an error message is logged and the process exits with code 1.
+ */
+async function initProject(projectName: string, options: Options): Promise<void> {
+  const denoInit = new Deno.Command("deno", {
+    args: ["init", projectName],
+    cwd: options.root,
+  });;
+
+  const output = await denoInit.output();
+
+  // console.log(output.code);
+  if (!output.success) {
+    console.error("Error initializing project");
+    console.log(new TextDecoder().decode(output.stderr));
+    Deno.exit(1);
+  }
+}
+
+/**
  * Main function to create a new project.
  */
 async function main() {
@@ -77,89 +133,17 @@ async function main() {
     console.log(`Creating project: ${projectName}`);
 
     // Initialize the project by running deno init ${projectName}
-
-    const denoInit = new Deno.Command("deno", {
-      args: ["init", projectName],
-      cwd: options.root,
-    });;
-
-    const output = await denoInit.output();
-
-    // console.log(output.code);
-
-    if (!output.success) {
-      console.error("Error initializing project");
-      console.log(new TextDecoder().decode(output.stderr));
-      Deno.exit(1);
-    }
+    await initProject(projectName, options);
 
     // Add any additional libraries
-    if (options.add && options.add.length) {
-      console.log("Adding libraries:", options.add.join(", "));
-
-      // run deno add $add1 $add2 ...
-      const denoAdd = new Deno.Command("deno", {
-        args: ["add", ...options.add],
-        cwd: fullPath,
-      });
-
-      const output = await denoAdd.output();
-
-      if (!output.success) {
-        console.error("Error adding libraries");
-        console.log(new TextDecoder().decode(output.stderr));
-        Deno.exit(1);
-      }
-    }
+    await addLibraries(options, fullPath);
 
     console.log(`Project created at "${fullPath}"`);
 
     if (options.vscode) {
       // create the .vscode directory
 
-      const vscodeDir = path.join(fullPath, ".vscode");
-
-      try {
-        Deno.mkdirSync(vscodeDir);
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          console.error(`Error creating .vscode directory: ${err.message}`);
-        } else {
-          console.error(`Error creating .vscode directory: ${String(err)}`);
-        }
-        Deno.exit(1);
-      }
-
-      // create the settings.json file
-      // { "deno.enable": true }
-
-      const settings = JSON.stringify({ "deno.enable": true }, null, 2);
-      const settingsFile = path.join(vscodeDir, "settings.json");
-
-      try {
-        Deno.writeTextFileSync(settingsFile, settings);
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          console.error(`Error creating settings.json: ${err.message}`);
-        } else {
-          console.error(`Error creating settings.json: ${String(err)}`);
-        }
-        Deno.exit(1);
-      }
-
-      console.log("Opening project in VSCode");
-
-      const vscode = new Deno.Command("code", {
-        args: [fullPath],
-      });
-
-      const output = await vscode.output();
-
-      if (!output.success) {
-        console.error("Error opening project in VSCode");
-        console.log(new TextDecoder().decode(output.stderr));
-        Deno.exit(1);
-      }
+      await initVSCodeProject(fullPath);
     }
   }
 }
@@ -167,4 +151,6 @@ async function main() {
 if (import.meta.main) {
   await main();
 }
+
+
 
